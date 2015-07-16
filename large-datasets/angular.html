@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html ng-app="Demo">
+<head>
+  <meta charset="utf-8">
+  <title>Rendering Large Datasets With AngularJS</title>
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="demo.css">
+</head>
+<body ng-controller="AppController as vm">
+  <h1>
+    Rendering Large Datasets With AngularJS
+  </h1>
+
+  <form>
+    <strong>Filter Data</strong>:
+    <input type="text" ng-model="vm.form.filter">
+
+    <!--
+      If the user is filtering the data, we want to offer some insight into
+      the breadth of the filtering.
+    -->
+    <span ng-if="vm.form.filter">
+      &mdash;
+      Filtering <strong>{{ vm.form.filter }}</strong>
+      over {{ vm.dataPoints }} data points,
+      {{ vm.visibleCount }} found.
+    </span>
+
+    <!-- Provide tooling to unmount and remount the grid. -->
+    <a ng-if="vm.grid.length" ng-click="vm.unmountGrid()">Unmount Grid</a>
+    <a ng-if="! vm.grid.length" ng-click="vm.remountGrid()">Remount Grid</a>
+  </form>
+
+  <table width="100%" cellspacing="2" ng-class="{ filtered: vm.form.filter }">
+    <tr ng-repeat="row in vm.grid track by row.id">
+      <th>
+        {{ row.id }}
+      </th>
+      <td
+        ng-repeat="item in row.items track by item.id"
+        class="item"
+        ng-class="{ hidden: item.isHiddenByFilter }">
+        {{ item.value }}
+      </td>
+    </tr>
+  </table>
+
+
+  <!-- Load scripts. -->
+  <script src="https://code.angularjs.org/1.4.3/angular.min.js"></script>
+  <script src="shared.js"></script>
+  <script>
+
+    // Create an application module for our demo.
+    angular.module( "Demo", [] );
+
+
+    // --------------------------------------------------------------------------- //
+    // --------------------------------------------------------------------------- //
+
+
+    // I control the root of the application.
+    angular.module( "Demo" ).controller(
+      "AppController",
+      function provideAppController( $scope ) {
+
+        var vm = this;
+
+        // We'll start out with a grid with 10,000 items.
+        vm.grid = generateGrid( 1000, 10 );
+
+        // Calculate the number of data-points that may have filtering.
+        vm.dataPoints = ( vm.grid.length * vm.grid[ 0 ].items.length );
+
+        // I hold the form data for use with ngModel.
+        vm.form = {
+          filter: ""
+        };
+
+        // I hold the number of items that are visible based on filtering.
+        vm.visibleCount = 0;
+
+        // As the user interacts with filter, we need to update the view-model
+        // to reflect the matching items.
+        $scope.$watch( "vm.form.filter", handleFilterChange );
+
+        // Expose the public API.
+        vm.remountGrid = remountGrid;
+        vm.unmountGrid = unmountGrid;
+
+
+        // ---
+        // PUBLIC METHODS.
+        // ---
+
+
+        // I update the visibility of the items when the filter is updated.
+        function handleFilterChange( newValue, oldValue ) {
+
+          if ( newValue === oldValue ) {
+
+            return;
+
+          }
+
+          // Reset the visible count. As we iterate of the items checking
+          // for visibility, we can increment this count as necessary.
+          vm.visibleCount = 0;
+
+          for ( var r = 0, rowCount = vm.grid.length ; r < rowCount ; r++ ) {
+
+            var row = vm.grid[ r ];
+
+            for ( var c = 0, columnCount = row.items.length ; c < columnCount ; c++ ) {
+
+              var item = row.items[ c ];
+
+              // The item is hidden if the given filter text cannot be
+              // found in the value of the item.
+              item.isHiddenByFilter = ( newValue && ( item.value.indexOf( newValue ) === -1 ) );
+
+              // If the item isn't hidden, track it as part of the visible
+              // set of data.
+              if ( ! item.isHiddenByFilter ) {
+
+                vm.visibleCount++;
+
+              }
+
+            }
+
+          }
+
+        }
+
+
+        // I repopulate the grid with data. This will help separate processing
+        // performance characteristics from page-load processing.
+        function remountGrid() {
+
+          vm.grid = generateGrid( 1000, 10 );
+          vm.dataPoints = ( vm.grid.length * vm.grid[ 0 ].items.length );
+
+          vm.visibleCount = 0;
+          vm.form.filter = "";
+
+        }
+
+
+        // I clear the grid of data. This will help separate processing
+        // performance characteristics from page-load processing.
+        function unmountGrid() {
+
+          vm.grid = [];
+          vm.dataPoints = 0;
+
+          vm.visibleCount = 0;
+          vm.form.filter = "";
+
+        }
+
+      }
+    );
+
+  </script>
+
+</body>
+</html>

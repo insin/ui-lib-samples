@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Rendering Large Datasets With Riot</title>
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="demo.css">
+</head>
+<body>
+  <h1>Rendering Large Datasets With Riot</h1>
+
+  <demo></demo>
+
+  <script src="http://cdn.jsdelivr.net/g/riot@2.2(riot.js+compiler.js)"></script>
+  <script src="shared.js"></script>
+  <script type="riot/tag">
+
+  <demo>
+    <demo-form
+      onfilterchange={filterChange}
+      datapoints={dataPoints}
+      visiblecount={visibleCount}
+      filter={filter}
+      ismounted={!!grid.length}
+      onunmount={unmount}
+      onremount={remount}
+    />
+    <demo-table grid={grid} filter={filter}/>
+
+    this.grid = generateGrid(1000, 10)
+    this.dataPoints = this.grid.length * this.grid[0].items.length
+    this.filter = ''
+
+    // It doesn't seem to redraw without these manual update() calls
+
+    filterChange(filter) {
+      this.filter = filter
+      this.visibleCount = getVisibileCount(filter, this.grid)
+      this.update()
+    }
+
+    unmount() {
+      this.grid = []
+      this.dataPoints = 0
+      this.filter = ''
+      this.update()
+    }
+
+    remount() {
+      this.grid = generateGrid(1000, 10)
+      this.dataPoints = this.grid.length * this.grid[0].items.length
+      this.filter = ''
+      this.update()
+    }
+  </demo>
+
+  <demo-form>
+    <form>
+      <strong>Filter Data</strong>:
+      <input value={opts.filter} oninput={filterChange}>
+      <span hide={!opts.filter}>
+        &mdash; Filtering <strong>{opts.filter}</strong>
+        over {opts.datapoints} data points,
+        {opts.visiblecount} found.
+      </span>
+      <a onclick={opts.ismounted ? opts.onunmount : opts.onremount}>
+        {opts.ismounted ? 'Unmount' : 'Remount'} Grid
+      </a>
+    </form>
+
+    filterChange(e) {
+      opts.onfilterchange(e.target.value)
+    }
+  </demo-form>
+
+  <demo-table>
+    <table width="100%" cellSpacing="2" class={filtered: !!opts.filter}>
+      <tbody>
+        <tr each={opts.grid}>
+          <th>{id}</th>
+          <td each={items}
+              class={
+                item: true,
+                hidden: !!parent.parent.opts.filter && value.indexOf(parent.parent.opts.filter) === -1
+              }>
+            {value}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </demo-table>
+
+  </script>
+
+  <script>
+    riot.mount('*')
+  </script>
+</body>
+</html>

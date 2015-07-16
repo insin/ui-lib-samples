@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Rendering Large Datasets With React</title>
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="demo.css">
+</head>
+<body>
+  <h1>Rendering Large Datasets With React</h1>
+  <div id="content"></div>
+  <script src="http://fb.me/react-0.13.3.min.js"></script>
+  <script src="http://fb.me/JSXTransformer-0.13.3.js"></script>
+  <script src="shared.js"></script>
+  <script type="text/jsx;harmony=true">
+
+var Demo = React.createClass({
+  getInitialState() {
+    var grid = generateGrid(1000, 10)
+    return {
+      grid: grid,
+      dataPoints: grid.length * grid[0].items.length,
+      filter: ''
+    }
+  },
+  handleFilterChange(filter) {
+    this.setState({filter})
+  },
+  handleUnmount() {
+    this.setState({grid: [], dataPoints: 0, filter: ''})
+  },
+  handleRemount() {
+    this.setState(this.getInitialState())
+  },
+  render() {
+    var {dataPoints, filter, grid} =this.state
+    return <div>
+      <DemoForm
+        dataPoints={dataPoints}
+        visibleCount={getVisibileCount(filter, grid)}
+        filter={filter}
+        isMounted={!!grid.length}
+        onFilterChange={this.handleFilterChange}
+        onUnmount={this.handleUnmount}
+        onRemount={this.handleRemount}
+      />
+      <DemoTable grid={grid} filter={filter}/>
+    </div>
+  }
+})
+
+var DemoForm = React.createClass({
+  handleFilterChange(e) {
+    this.props.onFilterChange(e.target.value)
+  },
+  render() {
+    var {dataPoints, filter, isMounted, visibleCount} = this.props
+    return <form>
+      <strong>Filter Data</strong>:{' '}
+      <input value={filter} onChange={this.handleFilterChange}/>{' '}
+      {!!filter && <span>
+        &mdash; Filtering <strong>{filter}</strong> over {dataPoints} data
+        points, {visibleCount} found.
+      </span>}{' '}
+      <a onClick={isMounted ? this.props.onUnmount : this.props.onRemount}>
+        {isMounted ? 'Unmount' : 'Remount'} Grid
+      </a>
+    </form>
+  }
+})
+
+var DemoTable = React.createClass({
+  render() {
+    var {filter, grid} = this.props
+    return <table width="100%" cellSpacing="2" className={!!filter && 'filtered'}>
+      <tbody>
+        {grid.map(row => <DemoTableRow key={row.id} row={row} filter={filter}/>)}
+      </tbody>
+    </table>
+  }
+})
+
+var DemoTableRow = React.createClass({
+  render() {
+    var {filter, row} = this.props
+    return <tr>
+      <th key="id">{row.id}</th>
+      {row.items.map(item =>
+        <DemoTableCell
+          key={item.id}
+          value={item.value}
+          hidden={!!filter && item.value.indexOf(filter) === -1}
+        />
+      )}
+    </tr>
+  }
+})
+
+var DemoTableCell = React.createClass({
+  shouldComponentUpdate(nextProps) {
+    return (this.props.hidden !== nextProps.hidden)
+  },
+  render() {
+    return <td className={'item' + (this.props.hidden ? ' hidden' : '')}>
+      {this.props.value}
+    </td>
+  }
+})
+
+React.render(<Demo/>, document.getElementById('content'))
+
+  </script>
+</body>
+</html>

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Rendering Large Datasets With Mithril</title>
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="demo.css">
+</head>
+<body>
+  <h1>Rendering Large Datasets With Mithril</h1>
+  <div id="content"></div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mithril/0.2.0/mithril.js"></script>
+  <script src="https://cdn.rawgit.com/insin/msx/master/dist/MSXTransformer.js"></script>
+  <script src="shared.js"></script>
+  <script type="text/msx;harmony=true">
+
+var Demo = {
+  controller() {
+    this.grid = m.prop([])
+    this.filter = m.prop('')
+
+    this.unmount = () => {
+      this.grid([])
+      this.filter('')
+    }
+
+    this.remount = () => {
+      var grid = generateGrid(1000, 10)
+      this.grid(grid)
+      this.filter('')
+      this.dataPoints = grid.length * grid[0].items.length
+    }
+
+    this.remount()
+  },
+
+  view(ctrl) {
+    var filter = ctrl.filter()
+    var grid = ctrl.grid()
+    return <div>
+      <DemoForm
+        dataPoints={ctrl.dataPoints}
+        visibleCount={getVisibileCount(filter, grid)}
+        filter={ctrl.filter}
+        isMounted={!!grid.length}
+        onUnmount={ctrl.unmount}
+        onRemount={ctrl.remount}
+      />
+      <DemoTable grid={grid} filter={filter}/>
+    </div>
+  }
+}
+
+var DemoForm = {
+  controller(props) {
+    this.onChange = (e) => {
+      props.onFilterChange(e.target.value)
+    }
+  },
+
+  view(ctrl, props) {
+    var {dataPoints, filter, isMounted, visibleCount} = props
+    return <form>
+      <strong>Filter Data</strong>:{' '}
+      <input value={filter()} oninput={m.withAttr('value', props.filter)}/>{' '}
+      {!!filter() ? <span>
+        &mdash; Filtering <strong>{filter()}</strong> over {dataPoints} data
+        points, {visibleCount} found.
+      </span> : null}{' '}
+      <a onclick={isMounted ? props.onUnmount : props.onRemount}>
+        {isMounted ? 'Unmount' : 'Remount'} Grid
+      </a>
+    </form>
+  }
+}
+
+var DemoTable = {
+  view(ctrl, props) {
+    var {filter, grid} = props
+    return <table width="100%" cellSpacing="2" className={!!filter && 'filtered'}>
+      <tbody>
+        {grid.map(row => <tr>
+          <th>{row.id}</th>
+          {row.items.map(item =>
+            <td className={'item' + (!!filter && item.value.indexOf(filter) === -1 ? ' hidden' : '')}>
+              {item.value}
+            </td>
+          )}
+        </tr>)}
+      </tbody>
+    </table>
+  }
+}
+
+m.mount(document.getElementById('content'), Demo)
+
+  </script>
+</body>
+</html>
